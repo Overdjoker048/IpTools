@@ -33,6 +33,7 @@ import os
 import platform
 import colorama
 
+colorama.init()
 GUI = f"""{colorama.Fore.YELLOW}                .                       
 {colorama.Fore.YELLOW}             .~5P.                      
 {colorama.Fore.YELLOW}           :JB&&G:                      
@@ -40,20 +41,21 @@ GUI = f"""{colorama.Fore.YELLOW}                .
 {colorama.Fore.YELLOW}       :JGB####B5!                      
 {colorama.Fore.YELLOW}     .~5GBBGGGGG5J:                     
 {colorama.Fore.YELLOW}    .~5PPPPPP5555J?:                    
-{colorama.Fore.YELLOW}    .J555YYYYJJJJJ??!:                  8888888 8888888b. {colorama.Fore.LIGHTRED_EX}      88888888888                888          
-{colorama.Fore.YELLOW}    .!5YYJJ???77777!!7!^.                 888   888   Y88b{colorama.Fore.LIGHTRED_EX}          888                    888         
-{colorama.Fore.LIGHTRED_EX}   !7:~{colorama.Fore.YELLOW}JJJ??777!!!~~~~~!!^.               888   888    888{colorama.Fore.LIGHTRED_EX}          888                    888         
-{colorama.Fore.LIGHTRED_EX}  ^PP57{colorama.Fore.YELLOW}^~7?77!!!~~~^^^~~~!!^              888   888   d88P{colorama.Fore.LIGHTRED_EX}          888   .d88b.   .d88b.  888 .d8888b 
-{colorama.Fore.LIGHTRED_EX} .Y5555Y!:{colorama.Fore.YELLOW}^!77!~~~^^^^^^~~!!!.            888   8888888P" {colorama.Fore.LIGHTRED_EX}          888  d88""88b d88""88b 888 88K     
-{colorama.Fore.LIGHTRED_EX} !5YJJJJJ?~.{colorama.Fore.YELLOW}.^!!~~^^^^~~~~!!7?:           888   888       {colorama.Fore.LIGHTRED_EX}          888  888  888 888  888 888 "Y8888b.
-{colorama.Fore.LIGHTRED_EX}.JJ???777777: {colorama.Fore.YELLOW}.^!!~~~~~~!!!77?7           888   888       {colorama.Fore.LIGHTRED_EX}          888  Y88..88P Y88..88P 888      X88
-{colorama.Fore.LIGHTRED_EX}:J?77!!!~~~!!~. {colorama.Fore.YELLOW}.~7!!!!!7777?J7         8888888 888       {colorama.Fore.LIGHTRED_EX}          888   "Y88P"   "Y88P"  888  88888P'  
+{colorama.Fore.YELLOW}    .J555YYYYJJJJJ??!:                  88888888 88                   {colorama.Fore.LIGHTRED_EX}88       88
+{colorama.Fore.YELLOW}    .!5YYJJ???77777!!7!^.               88                            {colorama.Fore.LIGHTRED_EX}88   8   88
+{colorama.Fore.LIGHTRED_EX}   !7:~{colorama.Fore.YELLOW}JJJ??777!!!~~~~~!!^.             88       88  888888   888888  {colorama.Fore.LIGHTRED_EX}88  888  88  888888   888888   888888
+{colorama.Fore.LIGHTRED_EX}  ^PP57{colorama.Fore.YELLOW}^~7?77!!!~~~^^^~~~!!^            88888    88 88    88 88    88 {colorama.Fore.LIGHTRED_EX}88 88 88 88       88 88    88 88    88
+{colorama.Fore.LIGHTRED_EX} .Y5555Y!:{colorama.Fore.YELLOW}^!77!~~~^^^^^^~~!!!.          88       88 88       88888888 {colorama.Fore.LIGHTRED_EX}8888   8888  8888888 88       88888888
+{colorama.Fore.LIGHTRED_EX} !5YJJJJJ?~.{colorama.Fore.YELLOW}.^!!~~^^^^~~~~!!7?:         88       88 88       88       {colorama.Fore.LIGHTRED_EX}888     888 88    88 88       88     
+{colorama.Fore.LIGHTRED_EX}.JJ???777777: {colorama.Fore.YELLOW}.^!!~~~~~~!!!77?7         88       88 88        8888888 {colorama.Fore.LIGHTRED_EX}88       88  8888888 88        8888888
+{colorama.Fore.LIGHTRED_EX}:J?77!!!~~~!!~. {colorama.Fore.YELLOW}.~7!!!!!7777?J7         
 {colorama.Fore.LIGHTRED_EX}.??7!!~~^^^^~!!. {colorama.Fore.YELLOW}.~?77777???J?.         
 {colorama.Fore.LIGHTRED_EX} ^?77!~~^^^~~!7^ {colorama.Fore.YELLOW}.^?????JJJJ!.          
 {colorama.Fore.LIGHTRED_EX}  .~777!!!!!!!7! {colorama.Fore.YELLOW}.~JJJJYYJ!.            
 {colorama.Fore.LIGHTRED_EX}    .:!7?7777??~ {colorama.Fore.YELLOW}.!YY5YJ~.              
 {colorama.Fore.LIGHTRED_EX}       .^!?JJJY^ {colorama.Fore.YELLOW}.J5J!:                 
-{colorama.Fore.LIGHTRED_EX}          .:!JY. {colorama.Fore.YELLOW}.~.                   """
+{colorama.Fore.LIGHTRED_EX}          .:!JY. {colorama.Fore.YELLOW}.~.                   
+"""
 print(GUI)
 
 class CLI(Exception):
@@ -107,7 +109,7 @@ class CLI(Exception):
         def leave() -> None:
             self.leave()
 
-        @self.command(alias=[self.__clear_cmd], name="clear-host", doc=self.clear_host.__doc__)
+        @self.command(alias=[self.__clear_cmd], doc=self.clear_host.__doc__)
         def clear_host() -> None:
             self.clear_host()
 
@@ -143,7 +145,7 @@ class CLI(Exception):
             def wrapper(name:str, 
                         doc: str, 
                         alias: list) -> None:
-                name = name.replace(" ", "_").lower()
+                name = name.replace(" ", "_").replace("-", "_").lower()
                 types = []
                 args = []
                 
@@ -197,7 +199,7 @@ class CLI(Exception):
             doc = ""
             if i["doc"] is not None:
                 doc += i["doc"]
-            text += "Alias    "+ ", ".join(i["alias"])+" -> "+i["name"]+" "+" ".join(map(str, i["args"]))+doc+"\n"
+            text += "Alias    "+ ", ".join(i["alias"])+" -> "+i["name"]+" "+" ".join(map(str, i["args"]))+" "+doc+"\n"
         echo(text[:-1], animation=self.animation, cooldown=self.cooldown, logs=False)
 
     def __decode(self, tpe: object, value: any) -> object:
@@ -218,7 +220,7 @@ class CLI(Exception):
         while True:
             try:
                 self.__cmd = sorted(self.__cmd, key=lambda x: x["name"])
-                entry = prompt(self.prompt, animation=self.animation, cooldown=self.cooldown).lower()
+                entry = prompt(self.prompt, animation=self.animation, cooldown=self.cooldown, logs=self.logs).lower()
                 exist = False
                 for cmd in self.__cmd:
                     if cmd["name"] == entry.split(" ")[0] or entry.split(" ")[0] in cmd["alias"]:
@@ -231,7 +233,7 @@ class CLI(Exception):
                 if not exist: 
                     echo(self.not_exist, animation=self.animation, cooldown=self.cooldown, logs=self.logs)
             except KeyboardInterrupt:
-                return
+                continue
             except Exception as e:
                 print(e)
                 continue

