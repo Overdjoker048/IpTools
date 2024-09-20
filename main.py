@@ -1,5 +1,4 @@
-import ram
-import PyCLI
+from pycli import *
 import requests
 import os
 import colorama
@@ -7,8 +6,10 @@ import geocoder
 import socket
 import utils
 import concurrent.futures
+from platform import system
 
-my_ip = requests.get('https://httpbin.org/ip').json()['origin']
+os.system("title FireWare")
+my_ip = requests.get("https://httpbin.org/ip").json()["origin"]
 scanned_port = 0
 
 bdd = utils.BDD()
@@ -16,8 +17,41 @@ for nmb, port in enumerate(bdd.info["port"]):
     utils.Logger_link(bdd.info["url"][nmb], port, my_ip).start()
 del bdd
 
-prompt_design = f"\n{colorama.Fore.LIGHTRED_EX}┌─[{colorama.Fore.YELLOW}FireWare{colorama.Fore.LIGHTRED_EX}]{colorama.Fore.LIGHTYELLOW_EX}@{colorama.Fore.LIGHTRED_EX}[{colorama.Fore.WHITE}{os.getlogin()}{colorama.Fore.LIGHTRED_EX}]{colorama.Fore.LIGHTBLACK_EX}:~{colorama.Fore.LIGHTRED_EX}\n└─>{colorama.Fore.YELLOW} $ {colorama.Fore.WHITE}"
-cli = PyCLI.CLI(prompt=prompt_design, animation=False, logs=False)
+prompt_design = colored("\n┌─[", "FF0000")+colored("FireWare", "FFFFF")+colored("]", "FF0000")+colored("@", "FFA000")+colored("[", "FF0000")+colored(os.getlogin())+colored("]", "FF0000")+colored(":~\n", "1A1A1A")+colored("└─>", "FF0000")+colored(" $ ", "FFA500")
+cli = CLI(prompt=prompt_design, anim=False, logs=False)
+
+display = f"""{colored("                .", "FFA500")} 
+{colored("             .~5P.", "FFA500")}
+{colored("           :JB&&G:", "FFA500")}
+{colored("         ^YB&&&#P^", "FFA500")}
+{colored("       :JGB####B5!", "FFA500")}
+{colored("     .~5GBBGGGGG5J:", "FFA500")}
+{colored("    .~5PPPPPP5555J?:", "FFA500")}
+{colored("    .J555YYYYJJJJJ??!:                  88888888 88                   ", "FFA500")}
+{colored("    .!5YYJJ???77777!!7!^.               88                            ", "FFA500")}{colored("88       88", "FF0000")}
+{colored("   !7:~", "FF0000")}{colored("JJJ??777!!!~~~~~!!^.             88       88  888888   888888  ", "FFA500")}{colored("88  888  88  888888   888888   888888", "FF0000")}
+{colored("  ^PP57", "FF0000")}{colored("^~7?77!!!~~~^^^~~~!!^            88888    88 88    88 88    88 ", "FFA500")}{colored("88 88 88 88       88 88    88 88    88", "FF0000")}
+{colored(" .Y5555Y!:", "FF0000")}{colored("^!77!~~~^^^^^^~~!!!.          88       88 88       88888888 ", "FFA500")}{colored("8888   8888  8888888 88       88888888", "FF0000")}
+{colored(" !5YJJJJJ?~.", "FF0000")}{colored(".^!!~~^^^^~~~~!!7?:         88       88 88       88       ", "FFA500")}{colored("888     888 88    88 88       88", "FF0000")}
+{colored(".JJ???777777: ", "FF0000")}{colored(".^!!~~~~~~!!!77?7         88       88 88        8888888 ", "FFA500")}{colored("88       88  8888888 88        8888888", "FF0000")}
+{colored(":J?77!!!~~~!!~. ", "FF0000")}{colored(".~7!!!!!7777?J7   ", "FFA500")}
+{colored(".??7!!~~^^^^~!!. ", "FF0000")}{colored(".~?77777???J?.", "FFA500")}
+{colored(" ^?77!~~^^^~~!7^ ", "FF0000")}{colored(".^?????JJJJ!.", "FFA500")}
+{colored("  .~777!!!!!!!7! ", "FF0000")}{colored(".~JJJJYYJ!.", "FFA500")}
+{colored("    .:!7?7777??~ ", "FF0000")}{colored(".!YY5YJ~.", "FFA500")}
+{colored("       .^!?JJJY^ ", "FF0000")}{colored(".J5J!:", "FFA500")}
+{colored("          .:!JY. ", "FF0000")}{colored(".~.", "FFA500")}
+"""
+print(display)
+
+match system():
+    case "Windows": clear_cmd = "cls"
+    case "Linux" | "Darwin": clear_cmd = "clear"
+
+@cli.command(alias=[clear_cmd], name="clear-host")
+def clear_host() -> None:
+    os.system(clear_cmd)
+    print(display)
 
 @cli.command(alias=["cl"])
 def create_link(url: str, port: int) -> None:
@@ -29,11 +63,6 @@ def create_link(url: str, port: int) -> None:
     else:
         print("The port are already used.")
         print(f"Use the remove_link command to remove the URL hosted on port {port}.")
-        
-@cli.command()
-def dos(ip: str, port: int) -> None:
-    "Search all opened port of IPv4 adresse or domain name and send data in opened port."
-    utils.dos(ip=ip, port=port)
 
 @cli.command(alias=["glc"])
 def geolocate(ip: str) -> None:
@@ -60,7 +89,7 @@ def scan_port(ip: str) -> None:
             opened_port.append(port)
         scanned_port += 1
         pourcent = int((scanned_port/65535) *100)
-        pourcent_display = colorama.Fore.LIGHTRED_EX+"█"*(pourcent // 5)
+        pourcent_display = colorama.Fore.RED+"█"*(pourcent // 5)
         unpoucent_display = " "*(20-(pourcent // 5))
         print(f"{pourcent_display}{unpoucent_display}{colorama.Fore.WHITE} {pourcent}/100% {colorama.Fore.YELLOW}{scanned_port}/65535", end="\r")
         scanner.close()
@@ -94,5 +123,22 @@ def file_open():
         with open("iplogger.json", "w+") as file:
             file.close()
 
-ram(debug=True)
+@cli.command(alias=["gw"])
+def get(ip: str, port: int = 80) -> None:
+    "Allows you to send a request to an IP address and receive the connection."
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
+    reponse = requests.request("GET", f"http://{ip}:{port}/", headers=headers)
+    try:
+        if reponse.status_code == 200:
+            print(f"{ip} has been successfully downloaded.")
+            print(f"[Path] {os.path.dirname(os.path.dirname(__file__))}/{ip}_{port}.html")
+            if not os.path.exists("output"):
+                os.mkdir("output")
+            with open(os.path.join("output", f"{ip}_{port}.html"), "wb") as file:
+                file.write(reponse.text.encode("utf-8"))
+        else:
+            print(f"The query returned an error code: {reponse.status_code}")
+    except requests.RequestException as e:
+        print(f"An error has occurred: {e}")
+
 cli.run()
