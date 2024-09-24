@@ -46,12 +46,7 @@ print(display)
 
 match system():
     case "Windows": clear_cmd = "cls"
-    case "Linux" | "Darwin": clear_cmd = "clear"
-
-@cli.command(alias=[clear_cmd], name="clear-host")
-def clear_host() -> None:
-    os.system(clear_cmd)
-    print(display)
+    case "Linux" | "Darwin": clear_cmd = "clear"
 
 @cli.command(alias=["cl"])
 def create_link(url: str, port: int) -> None:
