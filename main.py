@@ -6,7 +6,7 @@ import geocoder
 import socket
 import utils
 import concurrent.futures
-from platform import system
+from fake_useragent import UserAgent
 
 os.system("title FireWare")
 my_ip = requests.get("https://httpbin.org/ip").json()["origin"]
@@ -17,8 +17,8 @@ for nmb, port in enumerate(bdd.info["port"]):
     utils.Logger_link(bdd.info["url"][nmb], port, my_ip).start()
 del bdd
 
-prompt_design = colored("\n┌─[", "FF0000")+colored("FireWare", "FFFFF")+colored("]", "FF0000")+colored("@", "FFA000")+colored("[", "FF0000")+colored(os.getlogin())+colored("]", "FF0000")+colored(":~\n", "1A1A1A")+colored("└─>", "FF0000")+colored(" $ ", "FFA500")
-cli = CLI(prompt=prompt_design, anim=False, logs=False)
+prompt_design = colored("\n┌─[", "FF0000")+colored("FireWare", "FFFFF")+colored("]", "FF0000")+colored("@", "FFA000")+colored("[", "FF0000")+colored("{}")+colored("]", "FF0000")+colored(":~\n", "1A1A1A")+colored("└", "FF0000")+colored("[", "FF0000")+colored("{}")+colored("]", "FF0000")+colored(">", "FF0000")+colored(" $ ", "FFA500")
+cli = CLI(prompt=prompt_design, anim=True, logs=True, user="Overdjoker")
 
 display = f"""{colored("                .", "FFA500")} 
 {colored("             .~5P.", "FFA500")}
@@ -43,10 +43,6 @@ display = f"""{colored("                .", "FFA500")}
 {colored("          .:!JY. ", "FF0000")}{colored(".~.", "FFA500")}
 """
 print(display)
-
-match system():
-    case "Windows": clear_cmd = "cls"
-    case "Linux" | "Darwin": clear_cmd = "clear"
 
 @cli.command(alias=["cl"])
 def create_link(url: str, port: int) -> None:
@@ -121,7 +117,7 @@ def file_open():
 @cli.command(alias=["gw"])
 def get(ip: str, port: int = 80) -> None:
     "Allows you to send a request to an IP address and receive the connection."
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
+    headers = {"User-Agent": UserAgent().random}
     reponse = requests.request("GET", f"http://{ip}:{port}/", headers=headers)
     try:
         if reponse.status_code == 200:
@@ -135,5 +131,10 @@ def get(ip: str, port: int = 80) -> None:
             print(f"The query returned an error code: {reponse.status_code}")
     except requests.RequestException as e:
         print(f"An error has occurred: {e}")
+
+@cli.command(alias=["ls"])
+def dir():
+    "Display all file in directory."
+    echo(os.listdir(cli.path), color=(120, 50, 20))
 
 cli.run()
