@@ -23,7 +23,7 @@ __title__ = 'PyCLI'
 __author__ = 'Overdjoker048'
 __license__ = 'MIT'
 __copyright__ = 'Copyright (c) 2023-2024 Overdjoker048'
-__version__ = '1.2.0'
+__version__ = '1.2.1'
 __all__ = ['CLI', 'echo', 'prompt', 'write_logs', 'colored', 'gram']
 
 import colorama
@@ -36,9 +36,9 @@ import sys
 import shlex
 
 colorama.init()
-home = "\\".join(__file__.split("\\")[:-1])
 
 class CLI:
+    home = os.path.dirname(__file__)
     def __init__(self,
                  prompt: str | None = "[{}]@[{}]\\>",
                  user: str = "Python-Cli",
@@ -74,12 +74,12 @@ class CLI:
         if title is not None:
             match platform.system():
                 case "Windows": os.system(f"title {title}")
-                case "Linux" | "Darwin": os.system(f"echo -n '\033]0;{title}\007'")
+                case _: os.system(f"echo -n '\033]0;{title}\007'")
 
         self.__cmd = {}
         self.prompt = prompt
         self.user = user
-        self.path = home
+        self.path = CLI.home
         self.logs = logs
         self.anim = anim
         self.cool = cool
@@ -89,7 +89,7 @@ class CLI:
 
         match platform.system():
             case "Windows": self.__clear_cmd = "cls"
-            case "Linux" | "Darwin": self.__clear_cmd = "clear"
+            case _: self.__clear_cmd = "clear"
 
         if help_cmd:
             @self.command(alias=["?"], doc=self.help.__doc__)
@@ -99,7 +99,7 @@ class CLI:
             del self.help
 
         @self.command(alias=["cd"], doc=self.change_directory.__doc__)
-        def change_directory(path: str = home) -> None:
+        def change_directory(path: str = CLI.home) -> None:
             self.change_directory(path)
 
         @self.command(alias=[self.__clear_cmd], name="clear-host", doc=self.clear_host.__doc__)
@@ -149,6 +149,8 @@ class CLI:
                 for arg in inspect.signature(func).parameters.items():
                     types.append(arg[1].annotation)
                     args.append(f"[{arg[0]}]")
+                if doc is None:
+                    doc = ""
                 self.__cmd[name] = {
                         "doc": doc,
                         "function": func,
@@ -174,21 +176,29 @@ class CLI:
     def help(self) -> None:
         "Displays info about terminal commands."
         text = ""
+        lna = 0
+        la = 0
         for i in self.__cmd:
-            doc = ""
-            if type(self.__cmd[i]) is not str:
-                if self.__cmd[i]["doc"] is not None:
-                    doc += self.__cmd[i]["doc"]
-                if len(self.__cmd[i]["args"]) != 0:
-                    text += "Alias    "+ ", ".join(self.__cmd[i]["alias"])+" -> "+i+" "+" ".join(map(str, self.__cmd[i]["args"]))+" "+doc+"\n"
-                else:
-                    text += "Alias    "+ ", ".join(self.__cmd[i]["alias"])+" -> "+i+" "+doc+"\n"
+            if not isinstance(self.__cmd[i], str):
+                lnal = len(f"{i} {', '.join(self.__cmd[i]['args'])}")
+                if lnal > lna: lna = lnal
+                lal = len(", ".join(self.__cmd[i]["alias"]))
+                if lal > la: la = lal
+
+        for i in self.__cmd:
+            if not isinstance(self.__cmd[i], str):
+                alias = ", ".join(self.__cmd[i]["alias"])
+                alias += (la-len(alias))*" "
+                args = " ".join(map(str, self.__cmd[i]["args"]))
+                args+= (la-len(args))*" "
+                text += f"Alias    {alias} -> {i} {args}{(lna-(len(i)+len(args)+1))*" "} {self.__cmd[i]['doc']}\n"
         echo(text[:-1], anim=self.anim, cool=self.cool, color=self.color)
 
     def change_directory(self, path : str = home) -> None:
         "Allows you to change the location of the terminal in your files."
-        if os.path.isdir(os.path.normpath(self.path+"\\"+path)):
-            path = os.path.normpath(self.path+"\\"+path)
+        npath = os.path.join(self.path, path)
+        if os.path.isdir(npath):
+            path = os.path.normpath(npath)
         else:
             path = os.path.normpath(path)
         if os.path.isdir(path):
@@ -197,6 +207,7 @@ class CLI:
             echo("The path is invalid.", anim=self.anim, cool=self.cool, color=self.color)
 
     def __decode(self, tpe: object, value: any) -> object:
+        "Format arguments in the types chosen when creating commands."
         if tpe == inspect._empty:
             tpe = str
         try:
@@ -250,7 +261,8 @@ def echo(*values: object,
         >>> PyCLI.echo("Hello World", anim=True, cool=15, logs=True, end="\n", sep=" ")
     """
     output = sep.join(map(str, values))
-    times =  cool / len(output)
+    if not len(output) == 0:
+        times =  cool / len(output)
     if anim:
         for char in output:
             print(colored(char, color), end="", flush=True)
@@ -281,7 +293,8 @@ def prompt(__prompt: object = "",
         >>> import PyCLI
         >>> PyCLI.prompt("What's your name ?", anim=True, cool=15, logs=True, end="\n", sep=" ")
     """
-    times =  cool / len(__prompt)
+    if not len(__prompt) == 0:
+        times =  cool / len(__prompt)
     if anim:
         for i in str(__prompt):
             print(colored(i, color), end="", flush=True)
@@ -310,7 +323,7 @@ def write_logs(*values: object,
     text = sep.join(map(str, values)) + end
     if not os.path.exists("latest"):
         os.mkdir("latest")
-    with open(f"latest/{datetime.today().date()}.log", "a", encoding="UTF-8") as file:
+    with open(os.path.join("latest", f"{datetime.today().date()}.log"), "a", encoding="UTF-8") as file:
         file.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {text}")
 
 
@@ -332,12 +345,20 @@ def colored(text: str,
     if isinstance(color, str):
         return f"\033[38;2;{int(color[0:2], 16)};{int(color[2:4], 16)};{int(color[4:6], 16)}m{text}\033[0m"
     elif isinstance(color, tuple):
-        return f"\033[38;2;{color[0]};{color[1]};{color[2]}m{text}\033[0m"
+        return f"\033[38;2;{int(color[0])};{int(color[1])};{int(color[2])}m{text}\033[0m"
     elif color is None:
         return text
 
 def gram(debug=False) -> None:
-    "Displays the amount of memory used overall by the program, the debug arguments allow you to display the amount of memory used by each variable."
+    """
+    Displays the amount of memory used overall by the program, the debug arguments allow you to display 
+    the amount of memory used by each variable.
+
+    Examples of use::
+
+        >>> import PyCLI
+        >>> gram(debut=True)
+    """
     memory = 0
     all_vars = globals()
     for index in all_vars:

@@ -1,24 +1,26 @@
 from pycli import *
 import requests
 import os
-import colorama
 import geocoder
 import socket
 import utils
 import concurrent.futures
 from fake_useragent import UserAgent
+import threading
+import shutil
+import time
 
-os.system("title FireWare")
-my_ip = requests.get("https://httpbin.org/ip").json()["origin"]
+my_ip = ""
 scanned_port = 0
 
-bdd = utils.BDD()
-for nmb, port in enumerate(bdd.info["port"]):
-    utils.Logger_link(bdd.info["url"][nmb], port, my_ip).start()
-del bdd
+def get_ip() -> None:
+    global my_ip
+    my_ip = requests.get("https://httpbin.org/ip").json()["origin"]
 
-prompt_design = colored("\n┌─[", "FF0000")+colored("FireWare", "FFFFF")+colored("]", "FF0000")+colored("@", "FFA000")+colored("[", "FF0000")+colored("{}")+colored("]", "FF0000")+colored(":~\n", "1A1A1A")+colored("└", "FF0000")+colored("[", "FF0000")+colored("{}")+colored("]", "FF0000")+colored(">", "FF0000")+colored(" $ ", "FFA500")
-cli = CLI(prompt=prompt_design, anim=True, logs=True, user="Overdjoker")
+threading.Thread(target=get_ip).start()
+
+prompt_design = colored("\n┌─[", "FF0000")+colored("{}", "FFFFF")+colored("]", "FF0000")+colored("@", "FFA000")+colored("[", "FF0000")+colored("{}")+colored("]", "FF0000")+colored(":~\n", "1A1A1A")+colored("└>", "FF0000")+colored(" $ ", "FFA500")
+cli = CLI(prompt=prompt_design, anim=True, logs=True, user=os.getlogin(), title="FireWare")
 
 display = f"""{colored("                .", "FFA500")} 
 {colored("             .~5P.", "FFA500")}
@@ -47,13 +49,7 @@ print(display)
 @cli.command(alias=["cl"])
 def create_link(url: str, port: int) -> None:
     "Create an Iplogger link."
-    bdd = utils.BDD()
-    if not bdd.exist(port):
-        utils.Logger_link(url, port, my_ip).start()
-        bdd.add(port, url)
-    else:
-        print("The port are already used.")
-        print(f"Use the remove_link command to remove the URL hosted on port {port}.")
+    utils.IPlogger(url, port, my_ip).start()
 
 @cli.command(alias=["glc"])
 def geolocate(ip: str) -> None:
@@ -63,14 +59,14 @@ def geolocate(ip: str) -> None:
 
 @cli.command(alias=["gip"])
 def get_ip(ip: str) -> None:
-    "Display the Ipv4 adresse or domain name."
+    "Display the Ipv4 adress of domain name."
     if ip != socket.gethostbyname(ip):
         print(f"Domain: {socket.gethostbyname(ip)}")
 
 @cli.command(alias=["sp"])
-def scan_port(ip: str) -> None:
+def scan_port(ip: str, thread: int = 1024) -> None:
+    "Display all ports of an IPV4 adress"
     global scanned_port
-    "Display the Ipv4 adresse of domain name."
     socket.setdefaulttimeout(1)
     opened_port = []
     def scan(ip: str, port: int) -> None:
@@ -80,61 +76,92 @@ def scan_port(ip: str) -> None:
             opened_port.append(port)
         scanned_port += 1
         pourcent = int((scanned_port/65535) *100)
-        pourcent_display = colorama.Fore.RED+"█"*(pourcent // 5)
-        unpoucent_display = " "*(20-(pourcent // 5))
-        print(f"{pourcent_display}{unpoucent_display}{colorama.Fore.WHITE} {pourcent}/100% {colorama.Fore.YELLOW}{scanned_port}/65535", end="\r")
+        pourcent_display = colored("█"*(pourcent // 5), "FF0000")
+        unpoucent_display = " "*(20-(pourcent // 5)) 
+        print(f"{pourcent_display}{unpoucent_display} {pourcent}/100% {colored(f'{scanned_port}/65535', 'FFFF00')}", end="\r")
         scanner.close()
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1000) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=thread) as executor:
         for port in range(65535):
             executor.submit(scan, ip, port+1)
     print(" "*60, end="\r")
+    lip = 0
     for i in opened_port:
-        print(f"{colorama.Fore.LIGHTRED_EX}[{colorama.Fore.YELLOW}+{colorama.Fore.LIGHTRED_EX}]{colorama.Fore.WHITE}{ip}:{i}")
+        llip = len(f"{ip}:{i}")
+        if llip > lip:
+            lip = llip
+    txt = ""
+    for i in opened_port:
+        txt += f"{colored('[', 'FF0000')}{colored('+', 'FFFA00')}{colored(']', 'FF0000')}{ip}:{i} {' '*(lip-len(f'{ip}:{i}'))}{utils.port_used(i)}\n"
+    echo(txt)
     scanned_port = 0
 
-@cli.command(alias=["sl"])
-def show_link() -> None:
-    "Display list of hosted port."
-    utils.BDD().display()
-
-@cli.command(alias=["rl"])
-def remove_link(port: int) -> None:
-    "Remove hosting port of list."
-    utils.BDD().remove(port=port)
-    print("Restart FireWare for actualise host ports.")
-
-@cli.command(alias=["fo"])
-def file_open():
-    "Open the file who save all info about iplogger links"
-    try:
-        with open("iplogger.json", "r+") as file:
-            print(file.read())
-    except:
-        with open("iplogger.json", "w+") as file:
-            file.close()
-
-@cli.command(alias=["gw"])
-def get(ip: str, port: int = 80) -> None:
-    "Allows you to send a request to an IP address and receive the connection."
+@cli.command(alias=["dl"])
+def download(ip: str, port: int = 80) -> None:
+    "Create an html file from the ip response."
     headers = {"User-Agent": UserAgent().random}
     reponse = requests.request("GET", f"http://{ip}:{port}/", headers=headers)
-    try:
-        if reponse.status_code == 200:
-            print(f"{ip} has been successfully downloaded.")
-            print(f"[Path] {os.path.dirname(os.path.dirname(__file__))}/{ip}_{port}.html")
-            if not os.path.exists("output"):
-                os.mkdir("output")
-            with open(os.path.join("output", f"{ip}_{port}.html"), "wb") as file:
-                file.write(reponse.text.encode("utf-8"))
-        else:
-            print(f"The query returned an error code: {reponse.status_code}")
-    except requests.RequestException as e:
-        print(f"An error has occurred: {e}")
+    if reponse.status_code == 200:
+        print(f"{ip}_{port} has been successfully downloaded.")
+        print(f"[Path] {os.path.join(CLI.home, 'output', f'{os.path.splitext(ip)[0]}.{port}.html')}")
+        if not os.path.exists("output"):
+            os.mkdir("output")
+        print(os.path.splitext(ip))
+        with open(os.path.join("output", f"{os.path.splitext(ip)[0]}.{port}.html"), "wb") as file:
+            file.write(reponse.text.encode("utf-8"))
+    else:
+        print(f"The query returned an error code: {reponse.status_code}")
 
 @cli.command(alias=["ls"])
-def dir():
+def dir() -> None:
     "Display all file in directory."
-    echo(os.listdir(cli.path), color=(120, 50, 20))
+    files = os.listdir(cli.path)
+    maxlenght = 0
+    for i in files:
+        if len(i) > maxlenght:
+            maxlenght = len(i)
+
+    echo(f"{'Name'}{(maxlenght-4)*' '} | Last modification   | Perm  | Size")
+    echo((39+maxlenght)*"-")
+    text = ""
+    for i in files:
+        file = os.path.join(cli.path, i)
+        color = utils.color_file(file)
+        data = os.stat(file)
+        text += f"{colored(i, color=color)}{(maxlenght-len(i))*' '} | {time.strftime("%S:%M:%H %m:%d:%Y", time.localtime(os.path.getmtime(file)))} | {data.st_mode} | {utils.bytes_convert(data.st_size)}\n"
+    echo(text[:-1])
+
+@cli.command(alias=["run"])
+def start(path: str) -> None:
+    "launch file."
+    os.system(os.path.join(cli.path, path))
+
+@cli.command()
+def mkdir(path: str) -> None:
+    "Create directory."
+    os.mkdir(os.path.join(cli.path, path))
+
+@cli.command()
+def mkfile(path: str) -> None:
+    "Create File."
+    with open(os.path.join(cli.path, path)) as f:
+        f.close()
+
+@cli.command(alias=["del"])
+def delete(path: str) -> None:
+    "Remove file or directory."
+    os.remove(os.path.join(cli.path, path))
+
+@cli.command(alias=["cp"])
+def copy(path1: str, path2: str) -> None:
+    "Copy file."
+    shutil.copy(os.path.join(cli.path, path1), os.path.join(cli.path, path2))
+
+@cli.command()
+def dos(ip: str, port: int, thread: int = 1024, data: int = 1024) -> None:
+    "Uses a DOS on the target IP."
+    with concurrent.futures.ThreadPoolExecutor(max_workers=thread) as executor:
+        for i in range(thread):
+            executor.submit(utils.send_data, ip, port, data)
 
 cli.run()

