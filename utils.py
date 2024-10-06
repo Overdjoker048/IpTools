@@ -8,6 +8,7 @@ import os
 import requests
 import zipfile
 import shutil
+import sys
 
 class IPlogger(threading.Thread):
     def __init__(self, url: str, port: int, host: str) -> None:
@@ -134,23 +135,25 @@ def version() -> str:
     return "1.0.0a"
 
 def restart() -> None:
+    subprocess.run([sys.executable, "restart.py"])
     os.kill(os.getpid(), 9)
 
 def update() -> None:
     do_update = False
     result = subprocess.run(["pip", "list", "--outdated"], capture_output=True, text=True)
     if result.stdout:
+        print("lib")
         do_update = True
         for i in result.stdout.split("\n")[-2:-1]:
             lib = i.split(" ")[0]
             subprocess.run(["pip", "install", "--upgrade", lib])
     response = requests.get(f"https://api.github.com/repos/Overdjoker048/IpTools/releases")
     if response.status_code == 200:
-        do_update = True
         release_info = response.json()[0]
         if release_info:
             latest_version = release_info["tag_name"]
             if latest_version != version():
+                do_update = True
                 download_url = release_info["assets"][0]["browser_download_url"]
                 response = requests.get(download_url, stream=True)
                 with open('update.zip', 'wb') as file:

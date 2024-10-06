@@ -10,20 +10,18 @@ import threading
 import shutil
 import time
 
-my_ip = ""
-scanned_port = 0
-
 def get_ip() -> None:
     global my_ip
     my_ip = requests.get("https://httpbin.org/ip").json()["origin"]
 
+my_ip = ""
+scanned_port = 0
+utils.update()
 threading.Thread(target=get_ip).start()
 
 prompt_design = colored("\n┌─[", "FF0000")+colored("{}", "FFFFF")+colored("]", "FF0000")+colored("@", "FFA000")+colored("[", "FF0000")+colored("{}")+colored("]", "FF0000")+colored(":~\n", "1A1A1A")+colored("└>", "FF0000")+colored(" $ ", "FFA500")
-cli = CLI(prompt=prompt_design, logs=False, user=os.getlogin(), title="FireWare")
-
-if utils.update():
-    cli.clear_host()
+cli = CLI(prompt=prompt_design, logs=False, user=os.getlogin(), title="Fireware")
+cli.clear_host()
 
 @cli.command(alias=["cl"])
 def create_link(url: str, port: int) -> None:
@@ -159,7 +157,7 @@ def restart() -> None:
     utils.restart()
 
 @cli.command(alias=["vsn"])
-def update() -> None:
+def version() -> None:
     print(f"Version: {utils.version()}")
 
 cli.run()
