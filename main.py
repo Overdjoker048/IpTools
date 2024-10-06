@@ -20,31 +20,10 @@ def get_ip() -> None:
 threading.Thread(target=get_ip).start()
 
 prompt_design = colored("\n┌─[", "FF0000")+colored("{}", "FFFFF")+colored("]", "FF0000")+colored("@", "FFA000")+colored("[", "FF0000")+colored("{}")+colored("]", "FF0000")+colored(":~\n", "1A1A1A")+colored("└>", "FF0000")+colored(" $ ", "FFA500")
-cli = CLI(prompt=prompt_design, anim=True, logs=True, user=os.getlogin(), title="FireWare")
+cli = CLI(prompt=prompt_design, logs=False, user=os.getlogin(), title="FireWare")
 
-display = f"""{colored("                .", "FFA500")} 
-{colored("             .~5P.", "FFA500")}
-{colored("           :JB&&G:", "FFA500")}
-{colored("         ^YB&&&#P^", "FFA500")}
-{colored("       :JGB####B5!", "FFA500")}
-{colored("     .~5GBBGGGGG5J:", "FFA500")}
-{colored("    .~5PPPPPP5555J?:", "FFA500")}
-{colored("    .J555YYYYJJJJJ??!:                  88888888 88                   ", "FFA500")}
-{colored("    .!5YYJJ???77777!!7!^.               88                            ", "FFA500")}{colored("88       88", "FF0000")}
-{colored("   !7:~", "FF0000")}{colored("JJJ??777!!!~~~~~!!^.             88       88  888888   888888  ", "FFA500")}{colored("88  888  88  888888   888888   888888", "FF0000")}
-{colored("  ^PP57", "FF0000")}{colored("^~7?77!!!~~~^^^~~~!!^            88888    88 88    88 88    88 ", "FFA500")}{colored("88 88 88 88       88 88    88 88    88", "FF0000")}
-{colored(" .Y5555Y!:", "FF0000")}{colored("^!77!~~~^^^^^^~~!!!.          88       88 88       88888888 ", "FFA500")}{colored("8888   8888  8888888 88       88888888", "FF0000")}
-{colored(" !5YJJJJJ?~.", "FF0000")}{colored(".^!!~~^^^^~~~~!!7?:         88       88 88       88       ", "FFA500")}{colored("888     888 88    88 88       88", "FF0000")}
-{colored(".JJ???777777: ", "FF0000")}{colored(".^!!~~~~~~!!!77?7         88       88 88        8888888 ", "FFA500")}{colored("88       88  8888888 88        8888888", "FF0000")}
-{colored(":J?77!!!~~~!!~. ", "FF0000")}{colored(".~7!!!!!7777?J7   ", "FFA500")}
-{colored(".??7!!~~^^^^~!!. ", "FF0000")}{colored(".~?77777???J?.", "FFA500")}
-{colored(" ^?77!~~^^^~~!7^ ", "FF0000")}{colored(".^?????JJJJ!.", "FFA500")}
-{colored("  .~777!!!!!!!7! ", "FF0000")}{colored(".~JJJJYYJ!.", "FFA500")}
-{colored("    .:!7?7777??~ ", "FF0000")}{colored(".!YY5YJ~.", "FFA500")}
-{colored("       .^!?JJJY^ ", "FF0000")}{colored(".J5J!:", "FFA500")}
-{colored("          .:!JY. ", "FF0000")}{colored(".~.", "FFA500")}
-"""
-print(display)
+if utils.update():
+    cli.clear_host()
 
 @cli.command(alias=["cl"])
 def create_link(url: str, port: int) -> None:
@@ -93,42 +72,38 @@ def scan_port(ip: str, thread: int = 1024) -> None:
     txt = ""
     for i in opened_port:
         txt += f"{colored('[', 'FF0000')}{colored('+', 'FFFA00')}{colored(']', 'FF0000')}{ip}:{i} {' '*(lip-len(f'{ip}:{i}'))}{utils.port_used(i)}\n"
-    echo(txt)
+    echo(txt[:-1])
     scanned_port = 0
 
 @cli.command(alias=["dl"])
 def download(ip: str, port: int = 80) -> None:
     "Create an html file from the ip response."
-    headers = {"User-Agent": UserAgent().random}
-    reponse = requests.request("GET", f"http://{ip}:{port}/", headers=headers)
+    reponse = requests.request("GET", f"http://{ip}:{port}/", headers={"User-Agent": UserAgent().random})
     if reponse.status_code == 200:
-        print(f"{ip}_{port} has been successfully downloaded.")
-        print(f"[Path] {os.path.join(CLI.home, 'output', f'{os.path.splitext(ip)[0]}.{port}.html')}")
+        print(f"{colored('[', 'FF0000')}{colored('Path', 'FFFF00')}{colored(']', 'FF0000')} {os.path.join(CLI.home, 'output', f'{ip}.{port}.html')}")
         if not os.path.exists("output"):
             os.mkdir("output")
-        print(os.path.splitext(ip))
-        with open(os.path.join("output", f"{os.path.splitext(ip)[0]}.{port}.html"), "wb") as file:
+        with open(os.path.join("output", f"{ip}.{port}.html"), "wb") as file:
             file.write(reponse.text.encode("utf-8"))
     else:
         print(f"The query returned an error code: {reponse.status_code}")
 
 @cli.command(alias=["ls"])
-def dir() -> None:
+def dir(path: str = "") -> None:
     "Display all file in directory."
-    files = os.listdir(cli.path)
+    files = os.listdir(utils.path_format(cli.path, path))
     maxlenght = 0
     for i in files:
         if len(i) > maxlenght:
             maxlenght = len(i)
-
     echo(f"{'Name'}{(maxlenght-4)*' '} | Last modification   | Perm  | Size")
     echo((39+maxlenght)*"-")
     text = ""
     for i in files:
-        file = os.path.join(cli.path, i)
+        file = os.path.join(path, i)
         color = utils.color_file(file)
         data = os.stat(file)
-        text += f"{colored(i, color=color)}{(maxlenght-len(i))*' '} | {time.strftime("%S:%M:%H %m:%d:%Y", time.localtime(os.path.getmtime(file)))} | {data.st_mode} | {utils.bytes_convert(data.st_size)}\n"
+        text += f"{colored(i, color=color)}{(maxlenght-len(i))*' '} | {time.strftime('%S:%M:%H %m:%d:%Y', time.localtime(os.path.getmtime(file)))} | {data.st_mode} | {utils.bytes_convert(data.st_size)}\n"
     echo(text[:-1])
 
 @cli.command(alias=["run"])
@@ -139,23 +114,38 @@ def start(path: str) -> None:
 @cli.command()
 def mkdir(path: str) -> None:
     "Create directory."
-    os.mkdir(os.path.join(cli.path, path))
+    os.mkdir(path = utils.path_format(cli.path, path))
 
 @cli.command()
 def mkfile(path: str) -> None:
     "Create File."
-    with open(os.path.join(cli.path, path)) as f:
+    with open(utils.path_format(cli.path, path)) as f:
         f.close()
 
 @cli.command(alias=["del"])
 def delete(path: str) -> None:
     "Remove file or directory."
-    os.remove(os.path.join(cli.path, path))
+    os.remove(path = utils.path_format(cli.path, path))
 
 @cli.command(alias=["cp"])
 def copy(path1: str, path2: str) -> None:
     "Copy file."
-    shutil.copy(os.path.join(cli.path, path1), os.path.join(cli.path, path2))
+    path1 = utils.path_format(cli.path, path1)
+    path2 = utils.path_format(cli.path, path2)
+    shutil.copy(path1, path2)
+
+@cli.command(alias=["mv"])
+def move(path1: str, path2: str) -> None:
+    "Copy file."
+    path1 = utils.path_format(cli.path, path1)
+    path2 = utils.path_format(cli.path, path2)
+    shutil.copy(path1, path2)
+    os.remove(path1)
+
+@cli.command(alias=["rn"])
+def rename(path: str, name: str) -> None:
+    "Rename file."
+    os.rename(utils.path_format(cli.path, path), name)
 
 @cli.command()
 def dos(ip: str, port: int, thread: int = 1024, data: int = 1024) -> None:
@@ -163,5 +153,13 @@ def dos(ip: str, port: int, thread: int = 1024, data: int = 1024) -> None:
     with concurrent.futures.ThreadPoolExecutor(max_workers=thread) as executor:
         for i in range(thread):
             executor.submit(utils.send_data, ip, port, data)
+
+@cli.command(alias=["rs"])
+def restart() -> None:
+    utils.restart()
+
+@cli.command(alias=["vsn"])
+def update() -> None:
+    print(f"Version: {utils.version()}")
 
 cli.run()
